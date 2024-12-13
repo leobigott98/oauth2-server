@@ -1,23 +1,19 @@
-//import dependencies
-require('dotenv').config();
 const express = require('express');
-const helmet = require( 'helmet');
-const morgan = require('morgan');
-const path = require('path')
-const PORT = process.env.PORT || 3500;
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const authRoutes = require('./routes/authRoutes');
 
-//set up express server
 const app = express();
 
-//Environment
-console.log(process.env.NODE_ENV)
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(session({ secret: 'your_session_secret', resave: false, saveUninitialized: true }));
 
-//middleware
-app.use(express.json())
-app.use(morgan('dev'));
-app.use(helmet());
+app.use('/oauth', authRoutes);
 
-app.listen(PORT, ()=>{
-    console.log(`Listening on PORT ${PORT}`)
-})
+const PORT = 4000;
+app.listen(PORT, () => {
+    console.log(`OAuth2 server running on http://localhost:${PORT}`);
+});
+
 
