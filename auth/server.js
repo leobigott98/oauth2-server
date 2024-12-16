@@ -1,6 +1,22 @@
 const oauth2orize = require('oauth2orize');
 const jwt = require('jsonwebtoken');
+const passport = require('passport');
 const { getClient, getUser, saveToken } = require('./model');
+const BasicStrategy = require('passport-http').BasicStrategy;
+
+passport.use(
+    new BasicStrategy((clientId, clientSecret, done) => {
+        console.log('Authenticating client:', clientId);
+        const client = getClient(clientId);
+        if (!client || client.secret !== clientSecret) {
+            console.error('Invalid client credentials');
+            return done(null, false);
+        }
+        console.log('Client authenticated:', client);
+        return done(null, client);
+    })
+);
+
 
 // Create OAuth2 server
 const server = oauth2orize.createServer();
@@ -17,23 +33,62 @@ server.deserializeClient((id, done) => {
     return done(new Error('Client not found'));
 });
 
+// JWT Secret
+const jwtSecret = 'your_secret_key';
+
 // Authorization code grant
 server.grant(oauth2orize.grant.code((client, redirectUri, user, ares, done) => {
-    const code = jwt.sign({ clientId: client.id, userId: user.id }, 'your_secret_key', { expiresIn: '10m' });
+    const code = jwt.sign({ clientId: client.id, userId: user.id }, jwtSecret, { expiresIn: '10m' });
     saveToken(code, user, client);
     done(null, code);
 }));
 
-// Exchange authorization code for token
-server.exchange(oauth2orize.exchange.code((client, code, redirectUri, done) => {
+/* server.exchange(oauth2orize.exchange.code((client, code, redirectUri, done) => {
     try {
-        const payload = jwt.verify(code, 'your_secret_key');
+        const payload = jwt.verify(code, jwtSecret);
         if (payload.clientId !== client.id) return done(null, false);
 
-        const accessToken = jwt.sign({ userId: payload.userId }, 'your_secret_key', { expiresIn: '1h' });
+        const accessToken = jwt.sign({ userId: payload.userId }, jwtSecret, { expiresIn: '1h' });
         saveToken(accessToken, payload.userId, client);
         done(null, accessToken);
     } catch (err) {
+        return done(err);
+    }
+})); */
+
+// Exchange authorization code for an access token
+server.exchange(oauth2orize.exchange.code((client, code, redirectUri, done) => {
+    console.log('Client received in exchange:', client);
+    console.log('Code received:', code);
+    console.log('Redirect URI:', redirectUri);
+
+    if (!client) {
+        console.error('Client is undefined');
+        return done(null, false);
+    }
+
+
+    try {
+        console.log('Exchanging code for token...');
+        // Verify the authorization code
+        const payload = jwt.verify(code, jwtSecret);
+        if (payload.clientId !== client.id || client.redirectUri !== redirectUri) {
+            console.error('Invalid client or redirect URI');
+            return done(null, false);
+        }
+
+        // Generate access token
+        const accessToken = jwt.sign(
+            { userId: payload.userId, clientId: client.id },
+            jwtSecret,
+            { expiresIn: '1h' }
+        );
+
+        console.log('Access token generated:', accessToken);
+        saveToken(accessToken, payload.userId, client);
+        done(null, accessToken);
+    } catch (err) {
+        console.error('Error exchanging code:', err.message);
         return done(err);
     }
 }));
