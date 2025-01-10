@@ -3,7 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/auth');
+const tokenRoutes = require('./routes/token');
 const morgan = require('morgan');
 const connectDB = require('./utils/db');
 
@@ -19,7 +20,8 @@ app.use('/oauth', (req, res, next) => {
     next();
 });
 
-app.use('/oauth', authRoutes);
+app.use('/oauth/authorize', authRoutes);
+app.use('/oauth/token', tokenRoutes);
 
 const PORT = 4000;
 
