@@ -1,20 +1,23 @@
 const oauth2orize = require('oauth2orize');
 const getClient = require('../services/clientService');
 const { generateCode } = require('../utils/code');
+const { getUserByEmail } = require('../services/userService');
 const { saveAuthorizationCode, findAuthorizationCode, markCodeAsUsed } = require('./codeService');
 const { generateAccessToken, generateRefreshToken } = require('./tokenServices');
+const bcrypt = require('bcrypt');
+const RefreshToken = require('../models/RefreshToken');
 
 // Create OAuth2 server
-const server = oauth2orize.createServer();
+const oauth2orizeServer = oauth2orize.createServer();
 
 // Register serialization function (for client)
-server.serializeClient(function(client, done) {
+oauth2orizeServer.serializeClient(function(client, done) {
     return done(null, client.id)
 });
 
 
 // Register deserialization function
-server.deserializeClient((id, done) => {
+oauth2orizeServer.deserializeClient((id, done) => {
     const client = getClient(id);
     if (client) {
         return done(null, client);
@@ -23,7 +26,7 @@ server.deserializeClient((id, done) => {
 });
 
 // Authorization code grant
-server.grant(oauth2orize.grant.code(async (client, redirectUri, user, ares, done) => {
+oauth2orizeServer.grant(oauth2orize.grant.code(async (client, redirectUri, user, ares, done) => {
     try {
         const code = generateCode(); // Generate a secure random code
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -37,8 +40,38 @@ server.grant(oauth2orize.grant.code(async (client, redirectUri, user, ares, done
     }
 }));
 
+// Password grant type
+oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client, username, password, done) => {
+    try {
+        console.log(`🔐 Password Grant: Validating user ${username}`);
+
+        // Fetch user
+        const user = await getUserByEmail(username);
+        if (!user) {
+            console.error('❌ User not found');
+            return done(null, false);
+        }
+
+        // Verify password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            console.error('❌ Invalid password');
+            return done(null, false);
+        }
+
+        // Generate access and refresh tokens using tokenService
+        const refreshToken = await generateRefreshToken(user._id, client, user.scopes);
+        const accessToken = await generateAccessToken(user._id, client, user.scopes, refreshToken);
+
+        console.log('✅ Token issued successfully');
+        return done(null, accessToken, refreshToken);
+    } catch (error) {
+        return done(error);
+    }
+}));
+
 // Exchange authorization code for an access token
-server.exchange(oauth2orize.exchange.code(async (client, code, redirectUri, done) => {
+oauth2orizeServer.exchange(oauth2orize.exchange.code(async (client, code, redirectUri, done) => {
     try {
         const storedCode = await findAuthorizationCode(code);
 
@@ -66,8 +99,8 @@ server.exchange(oauth2orize.exchange.code(async (client, code, redirectUri, done
         await markCodeAsUsed(code);
 
         // Generate access and refresh tokens using tokenService
-        const accessToken = await generateAccessToken(storedCode.user_id, client.id, storedCode.scope);
-        const refreshToken = await generateRefreshToken(storedCode.user_id, client.id, storedCode.scope); 
+        const accessToken = await generateAccessToken(storedCode.user_id, client.id, storedCode.scopes);
+        const refreshToken = await generateRefreshToken(storedCode.user_id, client.id, storedCode.scopes); 
         
 
         return done(null, accessToken, refreshToken);
@@ -77,4 +110,25 @@ server.exchange(oauth2orize.exchange.code(async (client, code, redirectUri, done
     }
 }));
 
-module.exports = server;
+// Refresh Token Grant
+oauth2orizeServer.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, done) =>{
+    try {
+        // Find the refresh token in the database
+        const tokenRecord = await RefreshToken.findOne({token: refreshToken}).populate("user_id");
+
+        if(!tokenRecord) {
+            return done(null, false);
+        }
+
+        const user = tokenRecord.user_id;
+
+        // Generate new access token
+        const accessToken = await generateAccessToken(user._id, client, user.scopes, tokenRecord.token);
+
+        return done(null, accessToken, refreshToken, {expires_in: 900});
+    } catch (err) {
+        return done(err);    
+    }
+}))
+
+module.exports = oauth2orizeServer;

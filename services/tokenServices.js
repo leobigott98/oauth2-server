@@ -3,7 +3,7 @@ const AccessToken = require('../models/AccessToken');
 const RefreshToken = require('../models/RefreshToken');
 const crypto = require('crypto');
 
-async function generateAccessToken(user_id, client_id, scopes) {
+async function generateAccessToken(user_id, client_id, scopes, refreshToken) {
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + 900 * 1000); // 15 minute expiry
 
@@ -17,9 +17,20 @@ async function generateAccessToken(user_id, client_id, scopes) {
 
     const token = generateToken(payload); // This signs the JWT
 
-    await saveAccessToken(token, user_id, client_id, scopes, createdAt, expiresAt);
+    const refreshTokenId = await refreshTokeId(refreshToken);
+
+    await saveAccessToken(token, user_id, client_id, scopes, createdAt, expiresAt, refreshTokenId);
     
     return token;
+}
+
+async function refreshTokeId(refreshToken){
+    try {
+        return await RefreshToken.findOne({token: refreshToken})   
+    } catch (err) {
+        console.error('Error fetching refreshToke id:', err)
+        return null
+    }
 }
 
 async function generateRefreshToken(user_id, client_id, scopes) {
@@ -32,7 +43,7 @@ async function generateRefreshToken(user_id, client_id, scopes) {
     return refreshToken;
 }
 
-async function saveAccessToken(token, user_id, client_id, scopes, createdAt, expiresAt) {
+async function saveAccessToken(token, user_id, client_id, scopes, createdAt, expiresAt, refreshToken) {
     try {
         console.log('Storing access token:', token);
         const newToken = await AccessToken.create({
@@ -41,7 +52,8 @@ async function saveAccessToken(token, user_id, client_id, scopes, createdAt, exp
             client_id,
             scopes,
             createdAt,
-            expiresAt
+            expiresAt,
+            refreshToken
         });
 
         return newToken;

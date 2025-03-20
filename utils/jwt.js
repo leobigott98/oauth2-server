@@ -24,7 +24,7 @@ function generateToken(payload, exp = 900, aud = 'https://api.migo-wallet.com'){
 
     return jwt.sign(payload, privateKey, {
         algorithm: 'RS256',
-        expiresIn: exp,
+        //expiresIn: exp,
         issuer: 'https://auth.migo-wallet.com',
         audience: aud,
         jwtid: uuidv4(),

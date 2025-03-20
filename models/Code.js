@@ -5,7 +5,7 @@ const CodeSchema = new mongoose.Schema({
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
     redirectUri: { type: String, required: true },
-    scope: { type: [String], required: true },
+    scopes: { type: [String], required: true },
     expiresAt: { type: Date, required: true },
     used: { type: Boolean, default: false } // To prevent reuse
 });

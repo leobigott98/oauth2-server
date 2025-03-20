@@ -5,8 +5,11 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const authRoutes = require('./routes/auth');
 const tokenRoutes = require('./routes/token');
+const auth = require('./routes/auth');
+const oauth = require('./routes/oauth');
+const user = require('./routes/user');
 const morgan = require('morgan');
-const connectDB = require('./utils/db');
+const {connectDB} = require('./utils/db');
 const path = require('path');
 
 const app = express();
@@ -22,13 +25,11 @@ app.use('/', express.static(path.join(__dirname, 'public')));
 //index
 app.use('/', require('./routes/root'));
 
-app.use('/oauth', (req, res, next) => {
-    console.log('OAuth route middleware triggered');
-    next();
-});
+app.use('/auth', auth);
 
-app.use('/oauth/authorize', authRoutes);
-app.use('/oauth/token', tokenRoutes);
+app.use('/oauth', oauth);
+
+app.use('/user', user);
 
 //404 for all other non-specified routes
 app.all('*', (req, res)=>{

@@ -1,6 +1,6 @@
 const express = require('express');
-const passport = require('../oauth2/strategies');
-const oauth2orizeServer = require('../oauth2/oauth2');
+const passport = require('../services/strategies');
+const oauth2orizeServer = require('../services/oauth2Service');
 
 const router = express.Router();
 
