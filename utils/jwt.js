@@ -22,13 +22,18 @@ function generateToken(payload, exp = 900, aud = 'https://api.migo-wallet.com'){
         throw new Error("Missing required payload fields: `sub`, `client_id`, `scopes`");
     }
 
-    return jwt.sign(payload, privateKey, {
-        algorithm: 'RS256',
-        //expiresIn: exp,
-        issuer: 'https://auth.migo-wallet.com',
-        audience: aud,
-        jwtid: uuidv4(),
-    });
+    const jwtid = uuidv4();
+
+    return {
+        token: jwt.sign(payload, privateKey, {
+            algorithm: 'RS256',
+            //expiresIn: exp,
+            issuer: 'https://auth.migo-wallet.com',
+            audience: aud,
+            jwtid
+        }),
+        jwtid
+    };
 };
 
 module.exports = generateToken;

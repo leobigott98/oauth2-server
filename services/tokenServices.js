@@ -2,6 +2,7 @@ const generateToken = require('../utils/jwt');
 const AccessToken = require('../models/AccessToken');
 const RefreshToken = require('../models/RefreshToken');
 const crypto = require('crypto');
+const { v4: uuidv4} = require('uuid');
 
 async function generateAccessToken(user_id, client_id, scopes, refreshToken) {
     const createdAt = new Date();
@@ -19,9 +20,9 @@ async function generateAccessToken(user_id, client_id, scopes, refreshToken) {
 
     const refreshTokenId = await refreshTokeId(refreshToken);
 
-    await saveAccessToken(token, user_id, client_id, scopes, createdAt, expiresAt, refreshTokenId);
+    await saveAccessToken(token.token, user_id, client_id, scopes, createdAt, expiresAt, refreshTokenId, token.jwtid);
     
-    return token;
+    return token.token;
 }
 
 async function refreshTokeId(refreshToken){
@@ -38,12 +39,14 @@ async function generateRefreshToken(user_id, client_id, scopes) {
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days expiry
 
-    await saveRefreshToken(refreshToken, user_id, client_id, scopes, createdAt, expiresAt);
+    const jti = uuidv4();
+
+    await saveRefreshToken(refreshToken, user_id, client_id, scopes, createdAt, expiresAt, jti);
 
     return refreshToken;
 }
 
-async function saveAccessToken(token, user_id, client_id, scopes, createdAt, expiresAt, refreshToken) {
+async function saveAccessToken(token, user_id, client_id, scopes, createdAt, expiresAt, refreshToken, jti) {
     try {
         console.log('Storing access token:', token);
         const newToken = await AccessToken.create({
@@ -53,7 +56,8 @@ async function saveAccessToken(token, user_id, client_id, scopes, createdAt, exp
             scopes,
             createdAt,
             expiresAt,
-            refreshToken
+            refreshToken,
+            jti
         });
 
         return newToken;
@@ -63,7 +67,7 @@ async function saveAccessToken(token, user_id, client_id, scopes, createdAt, exp
     }
 }
 
-async function saveRefreshToken(token, user_id, client_id, scopes, createdAt, expiresAt) {
+async function saveRefreshToken(token, user_id, client_id, scopes, createdAt, expiresAt, jti) {
     try {
         console.log('Storing refresh token:', token);
         const newToken = await RefreshToken.create({
@@ -72,7 +76,8 @@ async function saveRefreshToken(token, user_id, client_id, scopes, createdAt, ex
             client_id,
             scopes,
             createdAt,
-            expiresAt
+            expiresAt, 
+            jti
         });
 
         return newToken;

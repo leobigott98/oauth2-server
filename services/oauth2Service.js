@@ -52,6 +52,12 @@ oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client, username
             return done(null, false);
         }
 
+        // Verify user is active
+        if(!user.active){
+            console.error('❌ Invalid user');
+            return done(null, false);
+        }
+
         // Verify password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
@@ -118,6 +124,14 @@ oauth2orizeServer.exchange(oauth2orize.exchange.refreshToken(async (client, refr
 
         if(!tokenRecord) {
             return done(null, false);
+        }
+
+        if(tokenRecord.revoked){
+            return done(null, false)
+        }
+
+        if(tokenRecord.expiresAt < new Date()){
+            return done(null, false)
         }
 
         const user = tokenRecord.user_id;
