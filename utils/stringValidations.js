@@ -1,7 +1,8 @@
 // Email validation
 const isValidEmail = (email)=>{
     if(typeof email === "string"){
-        const regex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+        const regexProd = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/; // FOR PRODUCTION
+        const regex = /^[\w-\.+]+@([\w-]+\.)+[\w-]{2,4}$/; // FOR DEVELOPMENT
         return regex.test(email);
     } else return false
 };
@@ -10,7 +11,7 @@ const isValidEmail = (email)=>{
 const isValidName = (name)=>{
     if(typeof name === "string"){
         const processed = name.trim().toUpperCase();
-        const regex = /\b([A-ZÀ-ÿ-a-z ']+[ ]*)+/;
+        const regex = /^[A-ZÀ-ÿ-a-z']+(?: [A-ZÀ-ÿ-a-z']+)*$/;
         return regex.test(processed);
     }else return false
 };
@@ -21,5 +22,13 @@ const isValidPassword = (password) => {
     return passwordRegex.test(password);
 };
 
-module.exports = { isValidEmail, isValidName, isValidPassword};
+const isValidSentence = (sentence)=>{
+    if(typeof sentence === "string"){
+        const processed = sentence.trim();
+        const regex = /^[¡¿A-ZÀ-ÿ-a-z'!?:]+(?: [¡¿A-ZÀ-ÿ-a-z'!?]+)*$/;
+        return regex.test(processed);
+    }else return false
+}
 
+
+module.exports = { isValidEmail, isValidName, isValidPassword, isValidSentence};

@@ -25,6 +25,9 @@ app.use('/', express.static(path.join(__dirname, 'public')));
 //index
 app.use('/', require('./routes/root'));
 
+//reset-password
+app.use('/reset-password', require('./routes/reset-password'));
+
 app.use('/auth', auth);
 
 app.use('/oauth', oauth);

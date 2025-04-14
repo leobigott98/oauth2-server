@@ -24,12 +24,22 @@ const userSchema = new mongoose.Schema({
         required: true,
         default: true
     },
+    verifiedEmail: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
     role: {
         type: String,
         required: true,
         enum: ["user", "admin"],
         default: "user"
     },
+    createdAt: { 
+        type: Date, 
+        default: Date.now, 
+        required: true
+    }, 
     scopes: [
         {
             type: mongoose.Schema.Types.ObjectId,
