@@ -24,7 +24,7 @@ router.post('/sign-up', async(req, res)=>{
         // Check if the user already exists
         const existingUser = await getUserByEmail(email);
         if(existingUser){
-            return res.status(400).json({ error: 'User already exists' });
+            return res.status(400).json({ message: 'User already exists' });
         }
 
         // Hash password
@@ -72,6 +72,8 @@ router.post('/verify-email', async(req, res)=>{
         // Verify OTP
         const verified = await verifyOTP(otp, email);
 
+        console.log(verified)
+
         if(!verified){
             return res.status(400).json({message: 'Not valid OTP'});
         }
@@ -87,7 +89,7 @@ router.post('/verify-email', async(req, res)=>{
         
     } catch (err) {
         console.error(err);
-        res.status(500).json({error: 'Internal server error'})
+        res.status(500).json({error: 'Internal server error', message: err.message})
         
     }
 
@@ -97,12 +99,13 @@ router.post('/request-new-otp', async(req,res)=>{
     try {
         const { email } = req.body;
 
+
         // Check if valid email
-        if(!isValidEmail(email)) throw new Error ('Not valid email');
+        if(!email || !isValidEmail(email)) return res.status(400).json({message: 'Not valid email'});
 
         // Check if user exists
         const user = await User.findOne({email});
-        if(!user) throw new Error ('No user found');
+        if(!user) return res.status(401).json({message: 'No user found'});
 
         //Generate new OTP
         const otp = await generateOTP();
@@ -117,11 +120,11 @@ router.post('/request-new-otp', async(req,res)=>{
         if (!emailId) throw new Error ('Error sending email');
 
         // Send successful response
-        res.status(200).json({ message: 'OTP sent'});
+        return res.status(200).json({ message: 'OTP sent'});
         
     } catch (err) {
         console.error('Error requesting new OTP', err);
-        res.status(500).json({error: 'Internal server error'});
+        return res.status(500).json({error: 'Internal server error', message: err.message});
         
     }
 })
@@ -130,11 +133,11 @@ router.post('/request-password-reset', async(req, res)=>{
     try {
         const { email } = req.body;
 
-        if (!email) return res.status(400).json({ error: 'Email is required' });
+        if (!email) return res.status(400).json({ message: 'Email is required' });
     
         const user = User.find({email});
     
-        if(!user) throw new Error('No user found');
+        if(!user) return res.status(401).json({message: 'No user found'});
     
         const token = await generatePasswordResetToken(email);
     
@@ -146,7 +149,7 @@ router.post('/request-password-reset', async(req, res)=>{
         
     } catch (err) {
         console.error('Error requesting password reset', err);
-        return null;
+        return res.status(500).json({error: 'Internal Server Error', message: err.message});
         
     }
 
@@ -158,7 +161,7 @@ router.post('/reset-password', async(req, res)=>{
 
         // Check if user existis
         const user = await User.findOne({ email });
-        if (!user) throw new Error("User not found");
+        if (!user) res.status(401).json({message: 'User not found'});
 
         // Verify token
         await verifyPasswordResetToken(token, email);
@@ -172,9 +175,25 @@ router.post('/reset-password', async(req, res)=>{
 
         res.status(200).json({ message: 'Password reset successful' });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(500).json({ error: 'Internal Server Error', message: err.message });
     }
 });
+
+router.post('/user-info', async(req, res)=>{
+    try {
+        const { email } = req.body;
+
+        // Validate email
+        if(!email) return res.status(400).json({ message: 'Email is required'});
+        if (!isValidEmail(email)) return res.status(400).json({ message: 'Not valid email'});
+
+        const user = await User.findOne({email})
+
+        
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error', meesage: err.message});
+    }
+})
 
 
 module.exports = router; 

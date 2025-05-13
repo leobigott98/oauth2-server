@@ -66,11 +66,11 @@ oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client, username
         }
 
         // Generate access and refresh tokens using tokenService
-        const refreshToken = await generateRefreshToken(user._id, client, user.scopes);
-        const accessToken = await generateAccessToken(user._id, client, user.scopes, refreshToken);
+        const refreshToken = await generateRefreshToken(user, client, user.scopes);
+        const accessToken = await generateAccessToken(user, client, user.scopes, refreshToken);
 
         console.log('✅ Token issued successfully');
-        return done(null, accessToken, refreshToken);
+        return done(null, accessToken, refreshToken, {expires_in: 900});
     } catch (error) {
         return done(error);
     }
@@ -109,7 +109,7 @@ oauth2orizeServer.exchange(oauth2orize.exchange.code(async (client, code, redire
         const refreshToken = await generateRefreshToken(storedCode.user_id, client.id, storedCode.scopes); 
         
 
-        return done(null, accessToken, refreshToken);
+        return done(null, accessToken, refreshToken, {expires_in: 900});
     } catch (err) {
         console.error('Error exchanging code:', err);
         return done(err);
@@ -139,7 +139,7 @@ oauth2orizeServer.exchange(oauth2orize.exchange.refreshToken(async (client, refr
         // Generate new access token
         const accessToken = await generateAccessToken(user._id, client, user.scopes, tokenRecord.token);
 
-        return done(null, accessToken, refreshToken, {expires_in: 900});
+        return done(null, accessToken, {expires_in: 900});
     } catch (err) {
         return done(err);    
     }
