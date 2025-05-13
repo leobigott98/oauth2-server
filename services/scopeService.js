@@ -46,6 +46,17 @@ async function getScopeIds(scopeNames){
     }
 };
 
+// Get Scope names from `_id`s
+async function getScopeNames(scopeIds){
+    try {
+        const scopes = await Scope.find({ _id: { $in: scopeIds } });
+        return scopes.map(scope => scope.name);
+    } catch (err) {
+        console.error("❌ Error fetching scope names:", err);
+        return null;
+    }
+}
+
 // Assign scopes to 
 
-module.exports = { addScope, getScope, getScopeIds }
+module.exports = { addScope, getScope, getScopeIds, getScopeNames };

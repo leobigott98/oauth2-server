@@ -13,7 +13,7 @@ router.put('/update', async (req, res) => {
         res.status(200).json({ message: 'User updated successfully' });
     } catch (err) {
         console.error('Update error:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
