@@ -2,3 +2,5 @@ node_modules
 logs
 .env
 keys
+git-filter-repo
+*.pem
