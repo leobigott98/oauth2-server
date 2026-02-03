@@ -152,7 +152,7 @@ router.post('/request-password-reset', async(req, res)=>{
     
         const token = await generatePasswordResetToken(email);
     
-        const resetUrl = `http://192.168.100.167:4000/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+        const resetUrl = `http://192.168.10.168:4000/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
     
         await sendMail(email,'Reset your password',`<p>Click the link to reset your password: ${resetUrl}<p>`);
     
