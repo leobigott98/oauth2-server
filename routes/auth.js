@@ -11,12 +11,16 @@ const { generatePasswordResetToken, verifyPasswordResetToken } = require('../ser
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const { isValidEmail } = require('../utils/stringValidations');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
 // User Sign-Up
 router.post('/sign-up', async(req, res)=>{
     try {
+        // log the request
+        logger.info(`Sign-up request received for email: ${req.body.email}`);
+
         // Get user data from request
         const { email, password, name, lastname, role } = req.body;
         const scopes = req.body.scopes || []; // Ensures scopes is always an array
@@ -24,6 +28,7 @@ router.post('/sign-up', async(req, res)=>{
         // Check if the user already exists
         const existingUser = await getUserByEmail(email);
         if(existingUser){
+            logger.warn(`User already exists with email: ${email}`);
             return res.status(400).json({ message: 'User already exists' });
         }
 
@@ -54,6 +59,8 @@ router.post('/sign-up', async(req, res)=>{
         
     } catch (err) {
         console.error(err);
+        logger.error(`Error during sign-up for email: ${req.body.email} - ${err.message}`);
+        // Log the error
         res.status(500).json({ error: 'Internal server error', message: err.message });
         
     }
@@ -66,6 +73,7 @@ router.post('/token', passport.authenticate(['basic'], { session: false }), oaut
 // Validate Email
 router.post('/verify-email', async(req, res)=>{
     try {
+        logger.info('Email verification request received');
         // Get email from request
         const {email, otp} = req.body;
 
@@ -75,6 +83,7 @@ router.post('/verify-email', async(req, res)=>{
         console.log(verified)
 
         if(!verified){
+            logger.warn(`Invalid OTP for email: ${email}`);
             return res.status(400).json({message: 'Not valid OTP'});
         }
 
@@ -84,11 +93,13 @@ router.post('/verify-email', async(req, res)=>{
         if(user){
             res.status(200).json({message: 'Email verified successfully'});
         }else{
+            logger.warn(`Email not found for verification: ${email}`);
             res.status(400).json({message: 'Not valid email'});
         }
         
     } catch (err) {
         console.error(err);
+        logger.error(`Error during email verification for email: ${req.body.email} - ${err.message}`);
         res.status(500).json({error: 'Internal server error', message: err.message})
         
     }

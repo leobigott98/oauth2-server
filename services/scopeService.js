@@ -23,19 +23,19 @@ async function getScope(name){
 // Get `_id`s of valid scopes and validate all exist
 async function getScopeIds(scopeNames){
     try {
-        console.log("🔍 Looking for scopes:", scopeNames);
+        //console.log("🔍 Looking for scopes:", scopeNames);
 
         // Remove duplicates
         const uniqueScopeNames = [...new Set(scopeNames)];
-        console.log("✨ Unique scope names:", uniqueScopeNames);
+        //console.log("✨ Unique scope names:", uniqueScopeNames);
 
         const scopes = await Scope.find({ name: { $in: uniqueScopeNames } });
-        console.log("✅ Found scopes:", scopes.map(s => s.name));
+        //console.log("✅ Found scopes:", scopes.map(s => s.name));
 
         if (scopes.length !== uniqueScopeNames.length) {
             const foundScopeNames = scopes.map(s => s.name);
             const missingScopes = uniqueScopeNames.filter(name => !foundScopeNames.includes(name));
-            console.log("❌ Missing Scopes:", missingScopes);
+            //console.log("❌ Missing Scopes:", missingScopes);
             throw new Error(`⛔ Missing Scopes: ${missingScopes.join(", ")}`);
         }
 
