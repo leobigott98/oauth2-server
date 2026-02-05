@@ -8,13 +8,41 @@
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-  server:
+  auth-server:
     build:
       context: .
-    environment:
-      NODE_ENV: production
+      dockerfile: Dockerfile
+    container_name: fastpayment_auth
     ports:
       - 4000:4000
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - MONGODB_CONN_URI=mongodb://mongo:27017/auth_db
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./keys:/usr/src/app/keys
+    depends_on:
+      - mongo
+    command: npm run dev
+
+  mongo:
+    image: mongo:6.0
+    container_name: fastpayment_auth_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
+
+    
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
