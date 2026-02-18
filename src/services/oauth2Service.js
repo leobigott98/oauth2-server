@@ -4,7 +4,7 @@ const { generateCode } = require('../utils/code');
 const { getUserByEmail } = require('../services/userService');
 const { saveAuthorizationCode, findAuthorizationCode, markCodeAsUsed } = require('./codeService');
 const { generateAccessToken, generateRefreshToken } = require('./tokenServices');
-const bcrypt = require('bcrypt');
+const bcryptjs = require('bcryptjs');
 const RefreshToken = require('../models/RefreshToken');
 
 // Create OAuth2 server
@@ -59,7 +59,7 @@ oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client, username
         }
 
         // Verify password
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcryptjs.compare(password, user.password);
         if (!isMatch) {
             console.error('❌ Invalid password');
             return done(null, false);

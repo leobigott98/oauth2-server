@@ -4,7 +4,7 @@ const oauth2orizeServer = require('../services/oauth2Service');
 const getClient = require('../services/clientService');
 const passport = require('../services/strategies');
 const { getUserByEmail, createUser, verifyEmail } = require('../services/userService');
-const bcrypt = require('bcrypt');
+const bcryptjs = require('bcryptjs');
 const { verifyOTP, generateOTP, saveOTP } = require('../services/otpService');
 const { sendMail } = require('../utils/sendEmail');
 const { generatePasswordResetToken, verifyPasswordResetToken } = require('../services/passwordResetService');
@@ -33,7 +33,7 @@ router.post('/sign-up', async(req, res)=>{
         }
 
         // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcryptjs.hash(password, 10);
 
         // Store 
         const user = await createUser({email, password: hashedPassword, name, lastname, role, scopes});
@@ -178,7 +178,7 @@ router.post('/reset-password', async(req, res)=>{
         await verifyPasswordResetToken(token, email);
 
         // Hash and update password
-        user.password = await bcrypt.hash(newPassword, 10);
+        user.password = await bcryptjs.hash(newPassword, 10);
         await user.save();
 
         //Invalidate sessions

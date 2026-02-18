@@ -1,5 +1,5 @@
 require('dotenv').config(); // Load environment variables
-const bcrypt = require('bcrypt');
+const bcryptjs = require('bcryptjs');
 const generateCode = require('../utils/code');
 const Client = require('../models/Client');
 const { connectDB, closeDBConnection} = require('../utils/db');
@@ -8,7 +8,7 @@ const { v4: uuidv4} = require('uuid');
 
 async function generateHashedSecret() {
     const secret = generateCode(); // Generate the secret
-    const hash = await bcrypt.hash(secret, 10); // Hash it
+    const hash = await bcryptjs.hash(secret, 10); // Hash it
     return { secret, hash };
 }
 

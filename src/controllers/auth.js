@@ -1,10 +1,10 @@
 // Import dependencies
 const express = require('express');
-const oauth2orizeServer = require('../services/oauth2Service');
-const getClient = require('../services/clientService');
-const {getUserByEmail, createUser} = require('../services/userService');
+const oauth2orizeServer = require('../../services/oauth2Service');
+const getClient = require('../../services/clientService');
+const {getUserByEmail, createUser} = require('../../services/userService');
 const router = express.Router();
-const bcrypt = require('bcrypt');
+const bcryptjs = require('bcryptjs');
 
 // User Sign-Up
 router.post('/sign-up', async(req, res)=>{
@@ -19,7 +19,7 @@ router.post('/sign-up', async(req, res)=>{
         }
 
         // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcryptjs.hash(password, 10);
 
         // Store 
         const user = await createUser({email, password, name, lastname, role, scopes});

@@ -8,7 +8,7 @@
 
 ARG NODE_VERSION=20.9.0
 
-FROM node:${NODE_VERSION}-bullseye-slim
+FROM node:${NODE_VERSION}-alpine
 
 # Use development node environment by default.
 ENV NODE_ENV development
