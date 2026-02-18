@@ -8,9 +8,9 @@
 
 ARG NODE_VERSION=20.9.0
 
-FROM node:${NODE_VERSION}-alpine
+FROM node:${NODE_VERSION}-bullseye-slim
 
-# Use production node environment by default.
+# Use development node environment by default.
 ENV NODE_ENV development
 
 
