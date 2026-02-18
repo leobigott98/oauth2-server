@@ -1,12 +1,12 @@
-const getClient = require('../services/clientService');
-const express = require('express');
-const oauth2orizeServer = require('../services/oauth2Service');
+import { getClient } from '../services/clientService';
+import oauth2orizeServer from '../services/oauth2Service';
+import { Router, Request, Response, NextFunction } from 'express';
 
-const router = express.Router()
+const router = Router()
 
 // **Authorization Code Grant - Step 1 (User Authorization Request)**
 router.get('/authorize', 
-    (req, res, next) => {
+    (req: Request, res: Response, next: NextFunction) => {
         // Simulated logged-in user (Replace this with actual session authentication)
         req.user = { id: '1', username: 'test' };
         console.log('User authenticated:', req.user);
@@ -36,4 +36,4 @@ router.get('/authorize',
 // **Token Exchange (Authorization Code → Access Token)**
 router.post('/token', oauth2orizeServer.token(), oauth2orizeServer.errorHandler());
 
-module.exports = router;
+export default router;

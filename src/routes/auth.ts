@@ -1,22 +1,22 @@
 // Import dependencies
-const express = require('express');
-const oauth2orizeServer = require('../services/oauth2Service');
-const getClient = require('../services/clientService');
-const passport = require('../services/strategies');
-const { getUserByEmail, createUser, verifyEmail } = require('../services/userService');
-const bcryptjs = require('bcryptjs');
-const { verifyOTP, generateOTP, saveOTP } = require('../services/otpService');
-const { sendMail } = require('../utils/sendEmail');
-const { generatePasswordResetToken, verifyPasswordResetToken } = require('../services/passwordResetService');
-const User = require('../models/User');
-const RefreshToken = require('../models/RefreshToken');
-const { isValidEmail } = require('../utils/stringValidations');
-const logger = require('../utils/logger');
+import { Router, Request, Response, NextFunction } from 'express';
+import oauth2orizeServer from '../services/oauth2Service';
+import getClient from '../services/clientService';
+import passport from '../services/strategies';
+import { getUserByEmail, createUser, verifyEmail } from '../services/userService';
+import bcryptjs from 'bcryptjs';
+import { verifyOTP, generateOTP, saveOTP } from '../services/otpService';
+import { sendMail } from '../utils/sendEmail';
+import { generatePasswordResetToken, verifyPasswordResetToken } from '../services/passwordResetService');
+import User from '../models/User';
+import RefreshToken from '../models/RefreshToken';
+import { isValidEmail } from '../utils/stringValidations';
+import logger from '../utils/logger';
 
-const router = express.Router();
+const router = Router();
 
 // User Sign-Up
-router.post('/sign-up', async(req, res)=>{
+router.post('/sign-up', async(req: Request, res: Response)=>{
     try {
         // log the request
         logger.info(`Sign-up request received for email: ${req.body.email}`);
@@ -71,7 +71,7 @@ router.post('/token', passport.authenticate(['basic'], { session: false }), oaut
 
 
 // Validate Email
-router.post('/verify-email', async(req, res)=>{
+router.post('/verify-email', async(req: Request, res: Response)=>{
     try {
         logger.info('Email verification request received');
         // Get email from request
@@ -106,7 +106,7 @@ router.post('/verify-email', async(req, res)=>{
 
 });
 
-router.post('/request-new-otp', async(req,res)=>{
+router.post('/request-new-otp', async(req: Request, res: Response)=>{
     try {
         const { email } = req.body;
 
@@ -140,7 +140,7 @@ router.post('/request-new-otp', async(req,res)=>{
     }
 })
 
-router.post('/request-password-reset', async(req, res)=>{
+router.post('/request-password-reset', async(req: Request, res: Response)=>{
     try {
         const { email } = req.body;
 
@@ -166,7 +166,7 @@ router.post('/request-password-reset', async(req, res)=>{
 
 });
 
-router.post('/reset-password', async(req, res)=>{
+router.post('/reset-password', async(req: Request, res: Response)=>{
     try {
         const { email, token, newPassword } = req.body;
 
@@ -190,7 +190,7 @@ router.post('/reset-password', async(req, res)=>{
     }
 });
 
-router.post('/user-info', async(req, res)=>{
+router.post('/user-info', async(req: Request, res: Response)=>{
     try {
         const { email } = req.body;
 
@@ -207,4 +207,4 @@ router.post('/user-info', async(req, res)=>{
 })
 
 
-module.exports = router; 
+export default router; 

@@ -1,9 +1,9 @@
-const express = require('express');
-const passport = require('../oauth2/strategies');
-const oauth2orizeServer = require('../oauth2/oauth2');
-const {getClient} = require('../auth/model');
+import { Router, Request, Response, NextFunction } from 'express';
+import passport from '../oauth2/strategies';
+import oauth2orizeServer from '../oauth2/oauth2';
+import { getClient } from '../auth/model';
 
-const router = express.Router();
+const router = Router();
 
 /* //Debug route
 router.get('/authorize', (req, res) => {
@@ -12,7 +12,7 @@ router.get('/authorize', (req, res) => {
 
 // Authorization endpoint
 router.get('/authorize', 
-    (req, res, next) => {
+    (req: Request, res: Response, next: NextFunction) => {
         // Simulated logged-in user
         req.user = { id: '1', username: 'test' };
         console.log('User authenticated:', req.user);
@@ -28,7 +28,7 @@ router.get('/authorize',
         console.error('Client validation failed');
         return done(null, false);
     }),
-    (req, res, next) => {
+    (req: Request, res: Response, next: NextFunction) => {
         // Simulate user granting consent
         console.log('Consent auto-approved for testing');
         req.body = { decision: 'allow' }; // Simulate user decision
@@ -42,7 +42,7 @@ router.get('/authorize',
 
 router.post(
     '/token',
-    (req, res, next) => {
+    (req: Request, res: Response, next: NextFunction) => {
         console.log('Token endpoint hit');
         next();
     },
@@ -51,4 +51,4 @@ router.post(
     oauth2orizeServer.errorHandler()
 );
 
-module.exports = router; 
+export default router; 

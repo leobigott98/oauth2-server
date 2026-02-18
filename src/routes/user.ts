@@ -1,10 +1,10 @@
-const express = require('express');
+import { Router, Request, Response } from 'express';
 const { updateUser } = require('../../services/userService');
 
-const router = express.Router();
+const router = Router();
 
 // **Update User Details**
-router.put('/update', async (req, res) => {
+router.put('/update', async (req: Request, res: Response) => {
     try {
         const updatedUser = await updateUser(req.body);
         if (!updatedUser) {
@@ -17,4 +17,4 @@ router.put('/update', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
