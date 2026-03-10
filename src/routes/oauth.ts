@@ -13,10 +13,10 @@ router.get('/authorize',
         next();
     }, 
 
-    oauth2orizeServer.authorize(async (clientId, redirectUri, done) => {
+    oauth2orizeServer.authorize(async (clientId, redirectUri: string, done: any) => {
         console.log('Authorization middleware received');
         const client = await getClient(clientId);
-        if (client && client.redirectUri.find(redirectUri)) {
+        if (client && client.redirectUri.includes(redirectUri)) {
             console.log('Client and redirect URI validated');
             return done(null, client, redirectUri);
         }

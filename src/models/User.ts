@@ -55,7 +55,8 @@ const defaultScopes: Record<string, string[]> = {
 // Before saving the user, assign default scopes based on role
 userSchema.pre("save", async function (next) {
   if (!this.scopes || this.scopes.length === 0) {
-    this.scopes = await getScopeIds(defaultScopes[this.role]);
+    const scopeIds = await getScopeIds(defaultScopes[this.role]);
+    this.scopes = scopeIds || [];
   }
   next();
 });

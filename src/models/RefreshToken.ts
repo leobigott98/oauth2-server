@@ -1,9 +1,18 @@
-const mongoose = require('mongoose');
+import mongoose, { Document, Schema } from "mongoose";
 const { v4: uuidv4} = require('uuid');
 
-const Schema = mongoose.Schema;
+export interface IRefreshToken extends Document {
+    jti: string;
+    token: string;
+    user_id: mongoose.Types.ObjectId;
+    client_id: mongoose.Types.ObjectId;
+    createdAt: Date;
+    expiresAt: Date;
+    revoked: boolean;
+    lastUsedAt: Date | null;
+}
 
-const refreshTokenSchema = new Schema({
+const refreshTokenSchema = new Schema<IRefreshToken>({
     jti: {
         type: String,
         required: true,
@@ -53,8 +62,8 @@ const refreshTokenSchema = new Schema({
 }); */
 
 // Create a user_id index 
-refreshTokenSchema.index({user_id: 1, client_id: 1})
+refreshTokenSchema.index({user_id: 1, client_id: 1});
 
-const RefreshToken = mongoose.model("RefreshToken", refreshTokenSchema);
-
-module.exports = RefreshToken;
+// Export
+const RefreshToken = mongoose.model<IRefreshToken>("RefreshToken", refreshTokenSchema);
+export default RefreshToken;

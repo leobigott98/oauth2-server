@@ -1,13 +1,12 @@
 // Import dependencies
 import { Router, Request, Response, NextFunction } from 'express';
 import oauth2orizeServer from '../services/oauth2Service';
-import getClient from '../services/clientService';
 import passport from '../services/strategies';
 import { getUserByEmail, createUser, verifyEmail } from '../services/userService';
 import bcryptjs from 'bcryptjs';
 import { verifyOTP, generateOTP, saveOTP } from '../services/otpService';
-import { sendMail } from '../utils/sendEmail';
-import { generatePasswordResetToken, verifyPasswordResetToken } from '../services/passwordResetService');
+import sendMail from '../utils/sendEmail';
+import { generatePasswordResetToken, verifyPasswordResetToken } from '../services/passwordResetService';
 import User from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import { isValidEmail } from '../utils/stringValidations';
@@ -59,9 +58,9 @@ router.post('/sign-up', async(req: Request, res: Response)=>{
         
     } catch (err) {
         console.error(err);
-        logger.error(`Error during sign-up for email: ${req.body.email} - ${err.message}`);
+        logger.error(`Error during sign-up for email: ${req.body.email} - ${err}`);
         // Log the error
-        res.status(500).json({ error: 'Internal server error', message: err.message });
+        res.status(500).json({ error: 'Internal server error', message: err });
         
     }
 });
@@ -99,8 +98,8 @@ router.post('/verify-email', async(req: Request, res: Response)=>{
         
     } catch (err) {
         console.error(err);
-        logger.error(`Error during email verification for email: ${req.body.email} - ${err.message}`);
-        res.status(500).json({error: 'Internal server error', message: err.message})
+        logger.error(`Error during email verification for email: ${req.body.email} - ${err}`);
+        res.status(500).json({error: 'Internal server error', message: err})
         
     }
 
@@ -135,7 +134,7 @@ router.post('/request-new-otp', async(req: Request, res: Response)=>{
         
     } catch (err) {
         console.error('Error requesting new OTP', err);
-        return res.status(500).json({error: 'Internal server error', message: err.message});
+        return res.status(500).json({error: 'Internal server error', message: err});
         
     }
 })
@@ -160,7 +159,7 @@ router.post('/request-password-reset', async(req: Request, res: Response)=>{
         
     } catch (err) {
         console.error('Error requesting password reset', err);
-        return res.status(500).json({error: 'Internal Server Error', message: err.message});
+        return res.status(500).json({error: 'Internal Server Error', message: err});
         
     }
 
@@ -172,7 +171,10 @@ router.post('/reset-password', async(req: Request, res: Response)=>{
 
         // Check if user existis
         const user = await User.findOne({ email });
-        if (!user) res.status(401).json({message: 'User not found'});
+        if (!user) {
+            res.status(401).json({message: 'User not found'});
+            return;
+        }
 
         // Verify token
         await verifyPasswordResetToken(token, email);
@@ -186,7 +188,7 @@ router.post('/reset-password', async(req: Request, res: Response)=>{
 
         res.status(200).json({ message: 'Password reset successful' });
     } catch (err) {
-        res.status(500).json({ error: 'Internal Server Error', message: err.message });
+        res.status(500).json({ error: 'Internal Server Error', message: err });
     }
 });
 
@@ -201,8 +203,8 @@ router.post('/user-info', async(req: Request, res: Response)=>{
         const user = await User.findOne({email})
 
         
-    } catch (error) {
-        res.status(500).json({ error: 'Internal Server Error', meesage: err.message});
+    } catch (err) {
+        res.status(500).json({ error: 'Internal Server Error', meesage: err});
     }
 })
 

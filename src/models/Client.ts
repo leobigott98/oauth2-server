@@ -1,9 +1,16 @@
-const mongoose = require("mongoose");
-const { v4: uuidv4, v4} = require('uuid');
+import mongoose, { Schema, Document } from "mongoose";
+import { v4 as uuidv4} from 'uuid';
 
-const Schema = mongoose.Schema;
+export interface IClient extends Document {
+    name: string;
+    client_id: string;
+    client_secret: string;
+    redirectUri: string[];
+    grant_types: string[];
+    scopes: mongoose.Types.ObjectId[];
+}
 
-const clientSchema = new Schema({
+const clientSchema = new Schema<IClient>({
     name: {
         type: String, 
         required: true, 
@@ -35,6 +42,6 @@ const clientSchema = new Schema({
     
 });
 
-const Client = mongoose.model("Client", clientSchema);
-
-module.exports = Client;
+// Export
+const Client = mongoose.model<IClient>("Client", clientSchema);
+export default Client;

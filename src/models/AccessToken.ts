@@ -1,9 +1,18 @@
-const mongoose = require("mongoose");
-const { v4: uuidv4} = require('uuid');
+import mongoose, {Schema, Document} from "mongoose";
+import {v4 as uuidv4} from "uuid";
 
-const Schema = mongoose.Schema;
+export interface IAccessToken extends Document {
+    jti: string;
+    token: string;
+    refreshToken: mongoose.Types.ObjectId;
+    user_id: mongoose.Types.ObjectId;
+    client_id: mongoose.Types.ObjectId;
+    scopes: mongoose.Types.ObjectId[];
+    createdAt: Date;
+    expiresAt: Date;
+}
 
-const accessTokenSchema = new Schema({
+const accessTokenSchema = new Schema<IAccessToken>({
     jti:{
         type: String,
         required: true,
@@ -47,6 +56,6 @@ const accessTokenSchema = new Schema({
     },
 });
 
-const AccessToken = mongoose.model('AccessToken', accessTokenSchema);
-
-module.exports = AccessToken;
+// Export
+const AccessToken = mongoose.model<IAccessToken>('AccessToken', accessTokenSchema);
+export default AccessToken;

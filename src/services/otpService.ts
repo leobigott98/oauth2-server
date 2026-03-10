@@ -1,8 +1,9 @@
 // Import dependencies
-const bcrypt = require("bcrypt");
-const OTP = require("../models/OTP");
-const nanoid = async (alphabet, number)=> { 
-  const {customAlphabet} = await import('nanoid');
+import bcrypt from 'bcrypt';
+import OTP, {IOTP} from '../models/OTP';
+import { customAlphabet } from 'nanoid';
+
+const nanoid = async (alphabet: string, number: number)=> { 
   const nanoid = customAlphabet(alphabet, number);
   return nanoid();
 }
@@ -11,7 +12,7 @@ const nanoid = async (alphabet, number)=> {
 const alphabet = "0123456789";
 
 // Generate OTP
-const generateOTP = async() => {
+export const generateOTP = async() => {
   try {
     const otp = await nanoid(alphabet, 6);
     console.log("Generated OTP:", otp);
@@ -23,7 +24,7 @@ const generateOTP = async() => {
 };
 
 // Save OTP to database
-const saveOTP = async (otp, email) => {
+export const saveOTP = async (otp: string, email: string) => {
   try {
     // Hash OTP
     const hashedOTP = await bcrypt.hash(otp, 10);
@@ -40,7 +41,7 @@ const saveOTP = async (otp, email) => {
 };
 
 // Delete all expired OTPs
-const deleteExpiredOTPs = async () => {
+export const deleteExpiredOTPs = async () => {
   try {
     const result = await OTP.deleteMany({ expiry: { $lte: Date.now() } });
     console.log(`${result.deletedCount} otps deleted`);
@@ -51,10 +52,10 @@ const deleteExpiredOTPs = async () => {
 };
 
 // Verify OTPs given an email
-const verifyOTP = async (otp, email) => {
+export const verifyOTP = async (otp: string, email: string) => {
   try {
     // Retrieve all OTPs under an email
-    const retrievedOtp = await OTP.find({ email }).sort({ expiry: -1 });
+    const retrievedOtp: IOTP[] | null = await OTP.find({ email }).sort({ expiry: -1 });
 
     // Check if there are any
     if (!retrievedOtp || retrievedOtp.length == 0) {
@@ -62,10 +63,10 @@ const verifyOTP = async (otp, email) => {
     }
 
     // Get the latest OTP
-    const latestOTP = retrievedOtp[0];
+    const latestOTP: IOTP = retrievedOtp[0];
 
     // Check if the one retrieved already expired
-    if (latestOTP.expiry <= Date.now()) {
+    if (latestOTP.expiry.getTime() <= Date.now()) {
       throw new Error("No valid OTP was found");
     }
 
@@ -83,5 +84,3 @@ const verifyOTP = async (otp, email) => {
     return null;
   }
 };
-
-module.exports = {generateOTP, saveOTP, verifyOTP, deleteExpiredOTPs};

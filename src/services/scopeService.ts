@@ -1,9 +1,10 @@
-const Scope = require('../models/Scope');
+import Scope, {IScope} from '../models/Scope';
+import mongoose from 'mongoose';
 
 // Add new scope (Upsert: Insert if not exists)
-async function addScope(name, description){
+export const addScope = async ({name, description}: IScope): Promise<IScope | null> => {
     try {
-        return await Scope.updateOne({ name }, { name, description }, { upsert: true });
+        return await Scope.findOneAndUpdate({ name }, { name, description }, { upsert: true, new: true }).exec();
     } catch (err) {
         console.error("❌ Error adding scope:", err);
         return null;
@@ -11,7 +12,7 @@ async function addScope(name, description){
 };
 
 // Get single scope by name
-async function getScope(name){
+export const getScope = async (name: string): Promise<IScope | null> => {
     try {
         return await Scope.findOne({ name }).exec();
     } catch (err) {
@@ -21,10 +22,8 @@ async function getScope(name){
 };
 
 // Get `_id`s of valid scopes and validate all exist
-async function getScopeIds(scopeNames){
+export const getScopeIds = async (scopeNames: string[]): Promise<mongoose.Types.ObjectId[] | null> => {
     try {
-        //console.log("🔍 Looking for scopes:", scopeNames);
-
         // Remove duplicates
         const uniqueScopeNames = [...new Set(scopeNames)];
         //console.log("✨ Unique scope names:", uniqueScopeNames);
@@ -39,15 +38,15 @@ async function getScopeIds(scopeNames){
             throw new Error(`⛔ Missing Scopes: ${missingScopes.join(", ")}`);
         }
 
-        return scopes.map(scope => scope._id);
+        return scopes.map(scope => scope._id as mongoose.Types.ObjectId);
     } catch (err) {
-        console.error("❌ Error validating scopes:", err.message);
+        console.error("❌ Error validating scopes:", err);
         return null;
     }
 };
 
 // Get Scope names from `_id`s
-async function getScopeNames(scopeIds){
+export const getScopeNames = async (scopeIds: mongoose.Types.ObjectId[]): Promise<string[] | null> => {
     try {
         const scopes = await Scope.find({ _id: { $in: scopeIds } });
         return scopes.map(scope => scope.name);
@@ -56,7 +55,3 @@ async function getScopeNames(scopeIds){
         return null;
     }
 }
-
-// Assign scopes to 
-
-module.exports = { addScope, getScope, getScopeIds, getScopeNames };

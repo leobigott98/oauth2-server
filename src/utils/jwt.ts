@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
+import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 
 // Private Key Path
 const privateKeyPath = path.join(__dirname, '../keys/private_key.pem');
@@ -9,14 +9,7 @@ const privateKeyPath = path.join(__dirname, '../keys/private_key.pem');
 // Load the private key
 const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
 
-/**
- * Generate a JWT access token.
- * @param {Object} payload - Token payload (must include `sub`, `client_id`, `scopes`).
- * @param {number} exp - Expiration time in seconds (default: 900 = 15 min).
- * @param {string} aud - Audience (default: Migo Wallet API).
- * @returns {string} - Signed JWT token.
- */
-function generateToken(payload, exp = 900, aud = 'https://api.migo-wallet.com'){
+const generateToken = (payload: any, exp = 900, aud = 'https://api.migo-wallet.com') => {
     // Ensure payload contains essential fields
     if (!payload.sub || !payload.client_id || !payload.scopes) {
         throw new Error("Missing required payload fields: `sub`, `client_id`, `scopes`");
@@ -36,4 +29,4 @@ function generateToken(payload, exp = 900, aud = 'https://api.migo-wallet.com'){
     };
 };
 
-module.exports = generateToken;
+export default generateToken;

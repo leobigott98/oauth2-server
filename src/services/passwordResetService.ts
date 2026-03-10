@@ -1,7 +1,7 @@
-const crypto = require('crypto');
-const PasswordResetToken = require('../models/PasswordResetToken');
+import crypto from 'crypto';
+import PasswordResetToken from '../models/PasswordResetToken';
 
-const generatePasswordResetToken = async (email) => {
+export const generatePasswordResetToken = async (email: string) => {
   try {
     // Generate secure random token
     const rawToken = crypto.randomBytes(32).toString('hex');
@@ -23,7 +23,7 @@ const generatePasswordResetToken = async (email) => {
   
 };
 
-const verifyPasswordResetToken = async (token, email) => {
+export const verifyPasswordResetToken = async (token: string, email: string) => {
   try {
     // Hash received token
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
@@ -42,9 +42,4 @@ const verifyPasswordResetToken = async (token, email) => {
     console.error('Error verifying Password Reset Token', err);
     return null;
   } 
-};
-
-module.exports = {
-  generatePasswordResetToken,
-  verifyPasswordResetToken,
 };
