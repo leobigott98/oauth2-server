@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
 // Private Key Path
-const privateKeyPath = path.join(__dirname, '../keys/private_key.pem');
+const privateKeyPath = path.join(process.cwd(), 'keys', 'private_key.pem');
 
 // Load the private key
 const privateKey = fs.readFileSync(privateKeyPath, 'utf8');

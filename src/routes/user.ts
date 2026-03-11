@@ -1,12 +1,23 @@
 import { Router, Request, Response } from 'express';
-const { updateUser } = require('../../services/userService');
+import { updateUser } from '../services/userService';
 
 const router = Router();
 
 // **Update User Details**
 router.put('/update', async (req: Request, res: Response) => {
     try {
-        const updatedUser = await updateUser(req.body);
+
+        // Validate input (Add more validation as needed)
+        if (!req.body.email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        const email = req.body.email;
+
+        if (!req.body.name && !req.body.lastname && !req.body.role) {
+            return res.status(400).json({ error: 'At least one field (name, lastname, role) is required for update' });
+        }
+
+        const updatedUser = await updateUser(email, req.body);
         if (!updatedUser) {
             return res.status(400).json({ error: 'Update failed' });
         }

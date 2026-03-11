@@ -8,7 +8,7 @@ import path from 'path';
 
 // Routes
 import authRoutes from './routes/auth';
-import tokenRoutes from './routes/token';
+//import tokenRoutes from './routes/token';
 import oauthRoutes from './routes/oauth';
 import userRoutes from './routes/user';
 import rootRoutes from './routes/root';
@@ -27,7 +27,7 @@ app.use(session({ secret: 'your_session_secret', resave: false, saveUninitialize
 app.use(morgan('dev'));
 
 //public accessed files
-app.use('/', express.static(path.join(__dirname, '../public')));
+app.use('/', express.static(path.join(process.cwd(), 'src', 'public')));
 
 // Main routes
 app.use('/', rootRoutes);
@@ -41,7 +41,7 @@ app.use('/user', userRoutes);
 app.all('*', (req: Request, res: Response)=>{
     res.status(404);
     if(req.accepts('html')){
-        res.sendFile(path.join(__dirname, '../views', '404.html'));                                                                                                                                                
+        res.sendFile(path.join(process.cwd(), 'src', 'views', '404.html'));                                                                                                                                               
     } else if (req.accepts('json')){
         res.json({message: '404 Not Found'});
     } else {

@@ -4,7 +4,7 @@ import generateCode from '../utils/code';
 import { getUserByEmail } from './userService';
 import { saveAuthorizationCode, findAuthorizationCode, markCodeAsUsed } from './codeService';
 import { generateAccessToken, generateRefreshToken } from './tokenServices';
-import bcryptjs from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import RefreshToken from '../models/RefreshToken';
 import {ICode} from '../models/Code';
 import User from '../models/User';
@@ -72,7 +72,7 @@ oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client: mongoose
             console.error('❌ User password is missing or invalid');
             return done(null, false);
         }
-        const isMatch = await bcryptjs.compare(password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             console.error('❌ Invalid password');
             return done(null, false);

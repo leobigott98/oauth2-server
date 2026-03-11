@@ -3,7 +3,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import oauth2orizeServer from '../services/oauth2Service';
 import passport from '../services/strategies';
 import { getUserByEmail, createUser, verifyEmail } from '../services/userService';
-import bcryptjs from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import { verifyOTP, generateOTP, saveOTP } from '../services/otpService';
 import sendMail from '../utils/sendEmail';
 import { generatePasswordResetToken, verifyPasswordResetToken } from '../services/passwordResetService';
@@ -32,7 +32,7 @@ router.post('/sign-up', async(req: Request, res: Response)=>{
         }
 
         // Hash password
-        const hashedPassword = await bcryptjs.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Store 
         const user = await createUser({email, password: hashedPassword, name, lastname, role, scopes});
@@ -180,7 +180,7 @@ router.post('/reset-password', async(req: Request, res: Response)=>{
         await verifyPasswordResetToken(token, email);
 
         // Hash and update password
-        user.password = await bcryptjs.hash(newPassword, 10);
+        user.password = await bcrypt.hash(newPassword, 10);
         await user.save();
 
         //Invalidate sessions

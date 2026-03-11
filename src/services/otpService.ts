@@ -1,11 +1,11 @@
 // Import dependencies
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import OTP, {IOTP} from '../models/OTP';
-import { customAlphabet } from 'nanoid';
 
 const nanoid = async (alphabet: string, number: number)=> { 
-  const nanoid = customAlphabet(alphabet, number);
-  return nanoid();
+  const { customAlphabet } = await import('nanoid');
+  const generate = customAlphabet(alphabet, number);
+  return generate();
 }
 
 // Custom alphabet to generate only 6-digit OTPs

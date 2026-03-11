@@ -1,6 +1,6 @@
 import passport from "passport";
 import { getClient } from "./clientService";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { BasicStrategy } from "passport-http";
 
 passport.use(

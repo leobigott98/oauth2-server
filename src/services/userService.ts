@@ -71,4 +71,33 @@ export const verifyEmail = async(email: string) =>{
     }
 }
 
-module.exports = { getUserByEmail, createUser, verifyEmail };
+// Update user function
+export const updateUser = async (email: string, updates: Partial<IUser>): Promise<IUser | null> => {
+    try {
+        // Validate email
+        if (!email) throw new Error('Email is required');
+        if (!isValidEmail(email)) throw new Error('Not valid email');
+
+        // Validate name if provided
+        if (updates.name && !isValidName(updates.name)) throw new Error('Not valid name');
+        if (updates.lastname && !isValidName(updates.lastname)) throw new Error('Not valid lastname');
+
+        // Validate role if provided
+        if (updates.role && updates.role !== 'admin' && updates.role !== 'user') throw new Error('Not valid role'); 
+
+        // Get scope IDs if scopes are provided
+        let scopeIds: mongoose.Types.ObjectId[] | null = [];
+
+        if (updates.scopes && Array.isArray(updates.scopes) && updates.scopes.length > 0) {
+            scopeIds = await getScopeIds(updates.scopes.map(scope => scope.toString()));
+        }
+
+        // Update user
+        const updatedUser = await User.findOneAndUpdate({ email }, { ...updates, scopes: scopeIds }, { new: true });
+
+        return updatedUser;
+    } catch (err) {
+        console.error('Error updating user:', err);
+        return null;
+    }
+};
