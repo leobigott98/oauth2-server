@@ -1,7 +1,9 @@
-require('dotenv').config(); // Load environment variables
-const mongoose = require("mongoose");
-const Scope = require("../models/Scope");
-const { connectDB, closeDBConnection} = require('../utils/db');
+import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import Scope from '../models/Scope';
+import { connectDB, closeDBConnection } from '../utils/db';
+
+dotenv.config();
 
 const scopes = [
     
@@ -44,13 +46,14 @@ const scopes = [
 
 ];
 
-async function seedScopes() {
+const seedScopes = async () => {
     try {
         // Connect to MongoDB Server
         await connectDB() ;
 
+        console.log('🌱 Seeding scopes...');
         for (const scope of scopes) {
-            await Scope.updateOne({ name: scope.name }, scope, { upsert: true });
+            await Scope.updateOne({ name: scope.name }, { $set: scope }, { upsert: true });
         }
 
         console.log("✅ Scopes seeded successfully!");
@@ -61,8 +64,5 @@ async function seedScopes() {
     }
 }
 
-if (require.main === module) {
-    seedScopes();
-}
-
-module.exports = seedScopes;
+// Since we'll be executing from the terminal, we'll run the seeding function at the end
+seedScopes();

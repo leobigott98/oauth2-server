@@ -5,65 +5,18 @@ import passport from '../services/strategies';
 import { getUserByEmail, createUser, verifyEmail } from '../services/userService';
 import bcrypt from 'bcryptjs';
 import { verifyOTP, generateOTP, saveOTP } from '../services/otpService';
-import sendMail from '../utils/sendEmail';
+import sendMail from '../utils/emailService';
 import { generatePasswordResetToken, verifyPasswordResetToken } from '../services/passwordResetService';
 import User from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import { isValidEmail } from '../utils/stringValidations';
 import logger from '../utils/logger';
+import { signUp } from '../controllers/authController';
 
 const router = Router();
 
-// User Sign-Up
-router.post('/sign-up', async(req: Request, res: Response)=>{
-    try {
-        // log the request
-        logger.info(`Sign-up request received for email: ${req.body.email}`);
-
-        // Get user data from request
-        const { email, password, name, lastname, role } = req.body;
-        const scopes = req.body.scopes || []; // Ensures scopes is always an array
-
-        // Check if the user already exists
-        const existingUser = await getUserByEmail(email);
-        if(existingUser){
-            logger.warn(`User already exists with email: ${email}`);
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Store 
-        const user = await createUser({email, password: hashedPassword, name, lastname, role, scopes});
-
-        if(user){
-            // Generate OTP
-            const otp = await generateOTP();
-            if(!otp) throw new Error ('Error generating OTP');
-
-            //Save OTP
-            const savedOTP = await saveOTP(otp, email);
-            if(!savedOTP) throw new Error('Error storing OTP');
-
-            // Send OTP
-            const emailId = sendMail(email, 'Validación de Correo', `<h1>Bienvenido a Migo</h1><h2>Valide su correo electrónico</h2><p>Introduce la siguiente Clave Temporal (OTP) en la App para completar tu registro:</p><p><b>${otp}</b><p>`);
-            if (!emailId) throw new Error ('Error sending email');
-
-            // Send successful response
-            res.status(201).json({ message: 'User registered successfully', userId: user._id });
-        }else{
-            res.status(400).json({message: 'Not valid user data'});
-        }
-        
-    } catch (err) {
-        console.error(err);
-        logger.error(`Error during sign-up for email: ${req.body.email} - ${err}`);
-        // Log the error
-        res.status(500).json({ error: 'Internal server error', message: err });
-        
-    }
-});
+// Sign-up route
+router.post('/sign-up', signUp);
 
 // OAuth 2 Password Grant (Login)
 router.post('/token', passport.authenticate(['basic'], { session: false }), oauth2orizeServer.token(), oauth2orizeServer.errorHandler());
