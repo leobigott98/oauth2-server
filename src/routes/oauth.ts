@@ -1,6 +1,7 @@
 import { getClient } from '../services/clientService';
 import oauth2orizeServer from '../services/oauth2Service';
 import { Router, Request, Response, NextFunction } from 'express';
+import passport from '../services/strategies';
 
 const router = Router()
 
@@ -33,7 +34,13 @@ router.get('/authorize',
     oauth2orizeServer.decision()
 );
 
-// **Token Exchange (Authorization Code → Access Token)**
-router.post('/token', oauth2orizeServer.token(), oauth2orizeServer.errorHandler());
+/* Token Exchange (Authorization Code → Access Token)
+Password Grant, Authorization Code, Refresh Token, etc
+*/
+router.post('/token', 
+    passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
+    oauth2orizeServer.token(), 
+    oauth2orizeServer.errorHandler()
+);
 
 export default router;
