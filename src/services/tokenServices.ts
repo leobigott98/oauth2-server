@@ -1,202 +1,142 @@
 import generateToken from '../utils/jwt';
-import AccessToken, { IAccessToken} from '../models/AccessToken';
-import RefreshToken, {IRefreshToken} from '../models/RefreshToken';
-import Client from '../models/Client';
-import User from '../models/User';
-import { getScopeIds, getScopeNames } from './scopeService';
+import RefreshToken, { IRefreshToken } from '../models/RefreshToken';
+import Client, { IClient } from '../models/Client';
+import User, { IUser } from '../models/User';
+import { getScopeNames } from './scopeService';
 import crypto from 'crypto';
-import { v4 as uuidv4} from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
 
+// Tipos actualizados
 interface GenerateAccessTokenParams {
-    user: any;
-    client: any;
+    user: IUser | null; // Acepta null para bots (Client Credentials)
+    client: IClient;
     scopes: mongoose.Types.ObjectId[];
-    refreshToken: string;
+    refreshToken: string | null; // Es mejor recibir el string y buscarlo adentro
 }
 
 interface GenerateRefreshTokenParams {
-    user: any;
-    client: any;
+    user: mongoose.Types.ObjectId; // Aquí usamos solo el ID
+    client: mongoose.Types.ObjectId; // Aquí usamos solo el ID
     scopes: mongoose.Types.ObjectId[];
 }
 
 export const getRefreshToken = async (refreshToken: string): Promise<IRefreshToken | null> => {
     try {
-        return await RefreshToken.findOne({token: refreshToken})   
+        return await RefreshToken.findOne({ token: refreshToken });
     } catch (err) {
-        console.error('Error fetching refreshToken id:', err)
-        return null
+        console.error('Error fetching refreshToken:', err);
+        return null;
     }
-}
+};
 
-export const generateAccessToken = async ({ user, client, scopes, refreshToken }: GenerateAccessTokenParams): Promise<IAccessToken | null> => {
-    const refreshTokenId: IRefreshToken | null = await getRefreshToken(refreshToken);
+export const generateAccessToken = async ({ user, client, scopes, refreshToken }: GenerateAccessTokenParams): Promise<string> => {
+    let refreshTokenRecord: IRefreshToken | null = null;
 
-    // Validate refresh token
-    if(!refreshTokenId) {
-        throw new Error('Invalid refresh token provided');
-    } else if (refreshTokenId.revoked) {
-        throw new Error('Refresh token has been revoked');
-    } else if (refreshTokenId.expiresAt < new Date()) {
-        throw new Error('Refresh token has expired');
-    }
-
-    const createdAt: Date = new Date();
-    const expiresAt: Date = new Date(createdAt.getTime() + 900 * 1000); // 15 minute expiry
-
-    // Get scope names for JWT payload
-    const scopeNames: string[] | null = await getScopeNames(scopes);
-    
-    // Validate scopes
-    if (!scopeNames) {
-        throw new Error('Invalid scopes provided');
+    // 1. Validar Refresh Token (SOLO si fue proveído)
+    if (refreshToken) {
+        refreshTokenRecord = await getRefreshToken(refreshToken);
+        if (!refreshTokenRecord) throw new Error('Invalid refresh token provided');
+        if (refreshTokenRecord.revoked) throw new Error('Refresh token has been revoked');
+        if (refreshTokenRecord.expiresAt < new Date()) throw new Error('Refresh token has expired');
     }
 
-    // Create JWT payload
-    const payload = {
-        sub: user._id,
+    const createdAt = new Date();
+    const expiresAt = new Date(createdAt.getTime() + 900 * 1000); // 15 mins
+
+    // 2. Obtener nombres de los scopes
+    const scopeNames = await getScopeNames(scopes);
+    if (!scopeNames) throw new Error('Invalid scopes provided');
+
+    // 3. Crear Payload Inteligente (Soporta Humanos y Bots)
+    const payload: any = {
         client_id: client.client_id,
         client_name: client.name,
-        email: user.email,
-        name: user.name,
-        lastname: user.lastname,
-        verifiedEmail: user.verifiedEmail,
         scopes: scopeNames,
         iat: Math.floor(createdAt.getTime() / 1000),
         exp: Math.floor(expiresAt.getTime() / 1000),
     };
 
-    // Generate JWT and save access token
-    const token = generateToken(payload); // This signs the JWT
+    if (user) {
+        // Si hay humano, inyectamos sus datos
+        payload.sub = user._id;
+        payload.email = user.email;
+        payload.name = user.name;
+        payload.lastname = user.lastname;
+        payload.verifiedEmail = user.verifiedEmail;
+    } else {
+        // Si es un Bot, el "sub" (Subject) es el mismo ID de la aplicación
+        payload.sub = client.client_id;
+    }
 
-    // Save access token to DB
-    const finalToken = await saveAccessToken({token: token.token as string, user_id: user._id as mongoose.Types.ObjectId, client_id: client.client_id as mongoose.Types.ObjectId, scopes: scopes as mongoose.Types.ObjectId[], createdAt: createdAt as Date, expiresAt: expiresAt as Date, refreshToken: refreshTokenId._id as mongoose.Types.ObjectId, jti: token.jwtid as string} as IAccessToken);
+    // 4. Firmar el JWT
+    const tokenData = generateToken(payload);
 
-    // Return the signed JWT string
-    return finalToken;
-}
+    // Retornamos solo el string del JWT, que es lo que OAuth2orize espera
+    return tokenData.token as string;
+};
 
-export const generateRefreshToken = async ({user, client}: GenerateRefreshTokenParams): Promise<string> => {
-    const refreshToken: string = crypto.randomBytes(64).toString('hex'); // Generate secure token
-    const createdAt: Date = new Date();
-    const expiresAt: Date = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days expiry
+export const generateRefreshToken = async ({ user, client, scopes }: GenerateRefreshTokenParams): Promise<string> => {
+    const refreshToken: string = crypto.randomBytes(64).toString('hex');
+    const createdAt = new Date();
+    const expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     const jti: string = uuidv4();
 
-    await saveRefreshToken({token: refreshToken, user_id: user as mongoose.Types.ObjectId, client_id: client as mongoose.Types.ObjectId, createdAt: createdAt as Date, expiresAt: expiresAt as Date, jti: jti as string, revoked: false, lastUsedAt: null} as IRefreshToken);
+    await saveRefreshToken({
+        token: refreshToken,
+        user_id: user,
+        client_id: client,
+        createdAt,
+        expiresAt,
+        jti,
+        revoked: false,
+        lastUsedAt: null
+    } as IRefreshToken);
 
     return refreshToken;
-}
+};
 
 export const revokeRefreshToken = async (refreshToken: string): Promise<void> => {
-    try {
-        const token = await RefreshToken.findOne({ token: refreshToken }).exec();
-
-        if (!token) {
-            throw new Error('Refresh token not found');
-        }   
-        token.revoked = true;
-        await token.save();
-    } catch (err) {
-        console.error("Error revoking refresh token:", err);
-        throw err;
-    }
-}
+    const token = await RefreshToken.findOne({ token: refreshToken }).exec();
+    if (!token) throw new Error('Refresh token not found');
+    
+    token.revoked = true;
+    await token.save();
+};
 
 export const updateLastUsedAt = async (refreshToken: string): Promise<void> => {
-    try {
-        const token = await RefreshToken.findOne({ token: refreshToken }).exec();
-        
-        if(!token) {
-            throw new Error('Refresh token not found');
-        }
-        token.lastUsedAt = new Date();
-        await token.save();
-    } catch (err) {
-        console.error("Error updating lastUsedAt for refresh token:", err);
-        throw err;
-    }
-}
+    const token = await RefreshToken.findOne({ token: refreshToken }).exec();
+    if (!token) throw new Error('Refresh token not found');
+    
+    token.lastUsedAt = new Date();
+    await token.save();
+};
 
-export const saveAccessToken = async ({token, user_id, client_id, scopes, createdAt, expiresAt, refreshToken, jti}: IAccessToken): Promise<IAccessToken | null> => {
-    try {
-        const newToken = await AccessToken.create({
-            token,
-            user_id,
-            client_id,
-            scopes,
-            createdAt,
-            expiresAt,
-            refreshToken,
-            jti
-        });
+const saveRefreshToken = async (data: Partial<IRefreshToken>): Promise<IRefreshToken> => {
+    return await RefreshToken.create(data);
+};
 
-        return newToken;
-    } catch (err) {
-        console.error("Error saving access token:", err);
-        throw err;
-    }
-}
+export const newAccessToken = async (refreshToken: string): Promise<string> => {
+    const storedRefreshToken = await RefreshToken.findOne({ token: refreshToken }).exec();
 
-const saveRefreshToken = async ({token, user_id, client_id, createdAt, expiresAt, jti}: IRefreshToken): Promise<IRefreshToken | null> => {
-    try {
-        const newToken = await RefreshToken.create({
-            token,
-            user_id,
-            client_id,
-            createdAt,
-            expiresAt, 
-            jti
-        });
+    if (!storedRefreshToken) throw new Error('Invalid refresh token');
+    if (storedRefreshToken.revoked) throw new Error('Refresh token has been revoked');
+    if (storedRefreshToken.expiresAt < new Date()) throw new Error('Refresh token has expired');
 
-        return newToken;
-    } catch (err) {
-        console.error("Error saving refresh token:", err);
-        throw err;
-    }
-}
+    await updateLastUsedAt(refreshToken);
 
-export const newAccessToken = async (refreshToken: string) => {
-    try {
-        const storedRefreshToken: IRefreshToken | null = await RefreshToken.findOne({ token: refreshToken }).exec();
+    const user = await User.findById(storedRefreshToken.user_id).exec();
+    const client = await Client.findById(storedRefreshToken.client_id).exec();
 
-        if (!storedRefreshToken) {
-            throw new Error('Invalid refresh token');
-        }
+    if (!user) throw new Error('User associated with refresh token not found');
+    if (!client) throw new Error('Client associated with refresh token not found');
 
-        if (storedRefreshToken.revoked) {
-            throw new Error('Refresh token has been revoked');
-        }
-
-        if (storedRefreshToken.expiresAt < new Date()) {
-            throw new Error('Refresh token has expired');
-        }
-
-        // Update lastUsedAt for refresh token
-        await updateLastUsedAt(refreshToken);
-
-        // Look for user and client associated with the refresh token
-        const user = await User.findById(storedRefreshToken.user_id).exec();
-        const client = await Client.findById(storedRefreshToken.client_id).exec();
-
-        if (!user) {
-            throw new Error('User associated with refresh token not found');
-        }
-
-        if (!client) {
-            throw new Error('Client associated with refresh token not found');
-        }
-
-        // Get scopes from the refresh token
-        const scopes = user.scopes;
-
-        // Generate new access token
-        return generateAccessToken({user: user._id, client: client._id, scopes: scopes, refreshToken: storedRefreshToken.token});
-    } catch (err) {
-        console.error("Error generating new access token:", err);
-        throw err;
-    }
-}
-
-module.exports = { generateAccessToken, generateRefreshToken, newAccessToken };
+    // Generamos un nuevo Access Token usando la función refactorizada
+    return await generateAccessToken({
+        user: user,
+        client: client,
+        scopes: user.scopes,
+        refreshToken: storedRefreshToken.token
+    });
+};

@@ -6,7 +6,7 @@ import { saveAuthorizationCode, findAuthorizationCode, markCodeAsUsed } from './
 import { generateAccessToken, generateRefreshToken } from './tokenServices';
 import bcrypt from 'bcryptjs';
 import RefreshToken from '../models/RefreshToken';
-import {ICode} from '../models/Code';
+import { ICode } from '../models/Code';
 import User from '../models/User';
 import mongoose from 'mongoose';
 
@@ -15,9 +15,8 @@ const oauth2orizeServer = oauth2orize.createServer();
 
 // Register serialization function (for client)
 oauth2orizeServer.serializeClient(function(client, done) {
-    return done(null, client.id)
+    return done(null, client.id);
 });
-
 
 // Register deserialization function
 oauth2orizeServer.deserializeClient((id, done) => {
@@ -52,7 +51,7 @@ oauth2orizeServer.grant(oauth2orize.grant.code(async (client, redirectUri, user,
 }));
 
 // Password grant type
-oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client: mongoose.Types.ObjectId, username, password, done: any) => {
+oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client: any, username, password, done: any) => {
     try {
         // Fetch user
         const user = await getUserByEmail(username);
@@ -62,7 +61,7 @@ oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client: mongoose
         }
 
         // Verify user is active
-        if(!user.active){
+        if (!user.active) {
             console.error('❌ Invalid user');
             return done(null, false);
         }
@@ -78,24 +77,30 @@ oauth2orizeServer.exchange(oauth2orize.exchange.password(async (client: mongoose
             return done(null, false);
         }
 
-        // Generate access and refresh tokens using tokenService
-        const refreshToken = await generateRefreshToken({user: user._id, client: client, scopes: user.scopes});
+        // Generate refresh token (Needs IDs)
+        const refreshToken = await generateRefreshToken({
+            user: user._id as mongoose.Types.ObjectId, 
+            client: client.id || client._id, 
+            scopes: user.scopes
+        });
+        
+        // Generate access token (Needs full User and Client objects)
         const accessToken = await generateAccessToken({
-            user: user._id || user.id,
-            client: client.id || client._id,
+            user: user, // ⬅️ Pasamos el objeto user completo
+            client: client, // ⬅️ Pasamos el objeto client completo
             scopes: user.scopes,
             refreshToken: refreshToken
         });
 
         console.log('✅ Token issued successfully');
-        return done(null, accessToken, refreshToken, {expires_in: 900});
+        return done(null, accessToken, refreshToken, { expires_in: 900 });
     } catch (error) {
         return done(error);
     }
 }));
 
 // Exchange authorization code for an access token
-oauth2orizeServer.exchange(oauth2orize.exchange.code(async (client, code, redirectUri, done: any) => {
+oauth2orizeServer.exchange(oauth2orize.exchange.code(async (client: any, code, redirectUri, done: any) => {
     try {
         const storedCode: ICode | null = await findAuthorizationCode(code);
 
@@ -122,19 +127,27 @@ oauth2orizeServer.exchange(oauth2orize.exchange.code(async (client, code, redire
         // Mark the code as used
         await markCodeAsUsed(code);
 
+        // Necesitamos buscar al usuario para pasarlo al token generator
+        const user = await User.findById(storedCode.user_id);
+        if (!user) {
+            return done(null, false);
+        }
+
         // Generate access and refresh tokens using tokenService
-        const refreshToken = await generateRefreshToken({user: storedCode.user_id, client: storedCode.client_id, scopes: storedCode.scopes});
+        const refreshToken = await generateRefreshToken({
+            user: storedCode.user_id as mongoose.Types.ObjectId, 
+            client: storedCode.client_id as mongoose.Types.ObjectId, 
+            scopes: storedCode.scopes as mongoose.Types.ObjectId[]
+        });
 
         const accessToken = await generateAccessToken({
-            user: storedCode.user_id,
-            client: client.id,
+            user: user, // ⬅️ Pasamos el objeto user completo
+            client: client, // ⬅️ Pasamos el objeto client completo
             scopes: storedCode.scopes as mongoose.Types.ObjectId[],
             refreshToken: refreshToken
         });
-        
-        
 
-        return done(null, accessToken, refreshToken, {expires_in: 900});
+        return done(null, accessToken, refreshToken, { expires_in: 900 });
     } catch (err) {
         console.error('Error exchanging code:', err);
         return done(err);
@@ -142,21 +155,13 @@ oauth2orizeServer.exchange(oauth2orize.exchange.code(async (client, code, redire
 }));
 
 // Refresh Token Grant
-oauth2orizeServer.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, done: any) =>{
+oauth2orizeServer.exchange(oauth2orize.exchange.refreshToken(async (client: any, refreshToken, done: any) => {
     try {
         // Find the refresh token in the database
-        const tokenRecord = await RefreshToken.findOne({token: refreshToken}).populate("user_id");
+        const tokenRecord = await RefreshToken.findOne({ token: refreshToken }).populate("user_id");
 
-        if(!tokenRecord) {
+        if (!tokenRecord || tokenRecord.revoked || tokenRecord.expiresAt < new Date()) {
             return done(null, false);
-        }
-
-        if(tokenRecord.revoked){
-            return done(null, false)
-        }
-
-        if(tokenRecord.expiresAt < new Date()){
-            return done(null, false)
         }
 
         // Find the user associated with the refresh token
@@ -168,16 +173,44 @@ oauth2orizeServer.exchange(oauth2orize.exchange.refreshToken(async (client, refr
 
         // Generate new access token
         const accessToken = await generateAccessToken({
-            user: user._id,
-            client: client.id || client._id,
+            user: user, // ⬅️ Pasamos el objeto user completo
+            client: client, // ⬅️ Pasamos el objeto client completo
             scopes: user.scopes,
             refreshToken: tokenRecord.token
         });
 
-        return done(null, accessToken, {expires_in: 900});
+        return done(null, accessToken, { expires_in: 900 });
     } catch (err) {
         return done(err);    
     }
-}))
+}));
+
+// Client Credentials Grant
+oauth2orizeServer.exchange(oauth2orize.exchange.clientCredentials(async (client: any, scope: string[], done: any) => {
+    try {
+        console.log(`🤖 Generando token para el cliente (Bot): ${client.name}`);
+
+        if (!client.grant_types || !client.grant_types.includes('client_credentials')) {
+            console.error('❌ Cliente no autorizado para usar Client Credentials');
+            return done(null, false);
+        }
+
+        let scopesToGrant = client.scopes || [];
+
+        const accessToken = await generateAccessToken({
+            user: null, // ⬅️ Para Client Credentials, user es explícitamente null
+            client: client, // ⬅️ Pasamos el objeto client completo
+            scopes: scopesToGrant, 
+            refreshToken: null // No refresh token para bots
+        });
+
+        console.log('✅ Token de Client Credentials emitido con éxito');
+        
+        return done(null, accessToken, null, { expires_in: 3600 });
+    } catch (error) {
+        console.error('❌ Error generando token de Client Credentials:', error);
+        return done(error);
+    }
+}));
 
 export default oauth2orizeServer;

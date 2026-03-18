@@ -8,7 +8,6 @@ import path from 'path';
 
 // Routes
 import authRoutes from './routes/auth';
-//import tokenRoutes from './routes/token';
 import oauthRoutes from './routes/oauth';
 import userRoutes from './routes/user';
 import rootRoutes from './routes/root';
