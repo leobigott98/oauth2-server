@@ -21,8 +21,6 @@ const generateToken = (payload: any, exp = 900, aud = 'https://api.migo-wallet.c
         token: jwt.sign(payload, privateKey, {
             algorithm: 'RS256',
             //expiresIn: exp,
-            issuer: 'https://auth.migo-wallet.com',
-            audience: aud,
             jwtid
         }),
         jwtid

@@ -186,7 +186,7 @@ oauth2orizeServer.exchange(oauth2orize.exchange.refreshToken(async (client: any,
 }));
 
 // Client Credentials Grant
-oauth2orizeServer.exchange(oauth2orize.exchange.clientCredentials(async (client: any, scope: string[], done: any) => {
+oauth2orizeServer.exchange(oauth2orize.exchange.clientCredentials((async (client: any, scope: string[], body: any, done: any) => {
     try {
         console.log(`🤖 Generando token para el cliente (Bot): ${client.name}`);
 
@@ -197,11 +197,15 @@ oauth2orizeServer.exchange(oauth2orize.exchange.clientCredentials(async (client:
 
         let scopesToGrant = client.scopes || [];
 
+        const requestedResource = body.resource; // Recurso solicitado por el cliente (si aplica)
+
         const accessToken = await generateAccessToken({
             user: null, // ⬅️ Para Client Credentials, user es explícitamente null
             client: client, // ⬅️ Pasamos el objeto client completo
             scopes: scopesToGrant, 
-            refreshToken: null // No refresh token para bots
+            refreshToken: null, // No refresh token para bots
+            duration: 3600, // Tokens de Client Credentials duran 1 hora
+            requestedAudience: requestedResource // Pasamos la audiencia solicitada (si existe)
         });
 
         console.log('✅ Token de Client Credentials emitido con éxito');
@@ -211,6 +215,7 @@ oauth2orizeServer.exchange(oauth2orize.exchange.clientCredentials(async (client:
         console.error('❌ Error generando token de Client Credentials:', error);
         return done(error);
     }
-}));
+}) as any
+));
 
 export default oauth2orizeServer;

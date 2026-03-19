@@ -5,7 +5,6 @@ import { BasicStrategy } from "passport-http";
 
 passport.use(
   new BasicStrategy(async (clientId, clientSecret, done) => {
-    console.log("Authenticating client:", clientId);
     const client = await getClient(clientId);
     if (!client) {
       console.error("Invalid client credentials");

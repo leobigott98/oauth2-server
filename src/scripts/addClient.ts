@@ -14,7 +14,7 @@ async function generateHashedSecret() {
     return { secret, hash };
 }
 
-async function addClient(name: string, redirectUris: string[], grantTypes: string[], scopeNames: string[]) {
+async function addClient(name: string, redirectUris: string[], grantTypes: string[], scopeNames: string[], audiences: string[] = []) {
     try {
         // Connect to MongoDB Server
         await connectDB() ;
@@ -32,7 +32,8 @@ async function addClient(name: string, redirectUris: string[], grantTypes: strin
             client_secret: hash, // Store hashed secret
             redirectUri: redirectUris, 
             grant_types: grantTypes, 
-            scopes: scopeIds
+            scopes: scopeIds,
+            audiences
         };
 
         await Client.updateOne({name}, { $set: clientData }, {upsert: true});
@@ -53,11 +54,12 @@ const clientName = process.argv[2];
 const redirectUris = process.argv[3]?.split(',') || [];
 const grantTypes = process.argv[4]?.split(',') || [];
 const scopes = process.argv[5]?.split(',') || [];
+const audiences = process.argv[6]?.split(',') || [''];
 
 if (require.main === module || process.argv[1].includes('addClient')) {
-    if (!clientName || redirectUris.length === 0 || grantTypes.length === 0 || scopes.length === 0) {
-        console.log('⚠️ Usage: ts-node addClient.ts <clientName> <redirectUri1,redirectUri2> <grant_type1> <scope1,scope2>');
+    if (!clientName || redirectUris.length === 0 || grantTypes.length === 0 || scopes.length === 0 || audiences.length === 0) {
+        console.log('⚠️ Usage: ts-node addClient.ts <clientName> <redirectUri1,redirectUri2> <grant_type1> <scope1,scope2> <audience1,audience2>');
         process.exit(1);
     }
-    addClient(clientName, redirectUris, grantTypes, scopes);
+    addClient(clientName, redirectUris, grantTypes, scopes, audiences);
 }

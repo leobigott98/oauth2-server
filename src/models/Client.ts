@@ -8,6 +8,8 @@ export interface IClient extends Document {
     redirectUri: string[];
     grant_types: string[];
     scopes: mongoose.Types.ObjectId[];
+    audiences: string[];
+    createdAt: Date;
 }
 
 const clientSchema = new Schema<IClient>({
@@ -38,8 +40,17 @@ const clientSchema = new Schema<IClient>({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Scope",
         required: true
-    }]
-    
+    }],
+    audiences: [{
+      type: String,
+      default: [],
+      required: true 
+  }],
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        required: true
+    }
 });
 
 // Export

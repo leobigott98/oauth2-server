@@ -13,6 +13,8 @@ interface GenerateAccessTokenParams {
     client: IClient;
     scopes: mongoose.Types.ObjectId[];
     refreshToken: string | null; // Es mejor recibir el string y buscarlo adentro
+    duration?: number; // Duración opcional en segundos (default: 900s = 15 mins)
+    requestedAudience?: string;
 }
 
 interface GenerateRefreshTokenParams {
@@ -30,7 +32,7 @@ export const getRefreshToken = async (refreshToken: string): Promise<IRefreshTok
     }
 };
 
-export const generateAccessToken = async ({ user, client, scopes, refreshToken }: GenerateAccessTokenParams): Promise<string> => {
+export const generateAccessToken = async ({ user, client, scopes, refreshToken, duration, requestedAudience }: GenerateAccessTokenParams): Promise<string> => {
     let refreshTokenRecord: IRefreshToken | null = null;
 
     // 1. Validar Refresh Token (SOLO si fue proveído)
@@ -42,17 +44,33 @@ export const generateAccessToken = async ({ user, client, scopes, refreshToken }
     }
 
     const createdAt = new Date();
-    const expiresAt = new Date(createdAt.getTime() + 900 * 1000); // 15 mins
+    const expiresAt = duration? new Date(createdAt.getTime() + duration * 1000): new Date(createdAt.getTime() + 900 * 1000); // 15 mins
 
     // 2. Obtener nombres de los scopes
     const scopeNames = await getScopeNames(scopes);
     if (!scopeNames) throw new Error('Invalid scopes provided');
+
+    // Lógica de Audiencia (Híbrida)
+    // Por defecto, le damos todas las audiencias que tiene permitidas en la BD
+    let finalAudience: string | string[] = client.audiences; 
+
+    // Si el cliente pide un recurso específico (RFC 8707)
+    if (requestedAudience) {
+        // Verificamos si tiene permiso para ir a ese recurso
+        if (!client.audiences.includes(requestedAudience)) {
+            throw new Error(`Client is not allowed to access resource: ${requestedAudience}`);
+        }
+        // Si tiene permiso, el token servirá ÚNICAMENTE para ese recurso
+        finalAudience = requestedAudience; 
+    }
 
     // 3. Crear Payload Inteligente (Soporta Humanos y Bots)
     const payload: any = {
         client_id: client.client_id,
         client_name: client.name,
         scopes: scopeNames,
+        aud: finalAudience, // ⬅️ Inyección dinámica
+        iss: process.env.JWT_ISSUER || 'https://auth.migo-wallet.com', // ⬅️ Inyección del emisor
         iat: Math.floor(createdAt.getTime() / 1000),
         exp: Math.floor(expiresAt.getTime() / 1000),
     };
